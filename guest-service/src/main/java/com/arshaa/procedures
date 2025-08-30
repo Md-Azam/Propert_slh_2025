@@ -1,0 +1,147 @@
+ 1.PROCEDURES FOR TOTAL DUEAMOUNT ON DASHBOARD .
+ 
+ DROP PROCEDURE IF EXISTS TOTAL_DASHBOARD_DUE;
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `TOTAL_DASHBOARD_DUE`()
+BEGIN
+SELECT
+sum(CASE
+WHEN (round(datediff(curdate(), check_in_date)*b.default_rent/30)
+-IFNULL((SELECT sum(payments.amount_paid) FROM payments WHERE guest_id= g.id),0)
++IFNULL((SELECT sum(payments.refund_amount) FROM payments WHERE guest_id= g.id),0)) >0 THEN
+(round(datediff(curdate(), check_in_date)*b.default_rent/30)
+-IFNULL((SELECT sum(payments.amount_paid) FROM payments WHERE guest_id= g.id),0)
++IFNULL((SELECT sum(payments.refund_amount) FROM payments WHERE guest_id= g.id),0))
+ELSE 0
+END ) Due_Amount
+FROM guest g JOIN beds b ON g.bed_id = b.bed_id
+WHERE g.guest_status IN ('Acctive','InNotice') AND g.occupancy_type='Regular';
+END//
+DELIMITER ;
+ ---------------------------------------------------
+2.PROCEDURES FOR CHECKOUT INITIATE FUNCTION .
+
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `initiate_check_out`(GUEST__ID VARCHAR(10))
+BEGIN
+DECLARE NOTICE__DATE DATE;
+DECLARE CHECK_OUT__DATE DATE;
+SET NOTICE__DATE = NOW();
+SET CHECK_OUT__DATE = DATE_ADD(NOTICE__DATE,INTERVAL 15 DAY);
+UPDATE guest SET planned_check_out_date = CHECK_OUT__DATE ,notice_date = NOTICE__DATE,guest_status='InNotice' WHERE ID=GUEST__ID and guest_status = 'Active' ;
+select date(planned_check_out_date) , date(notice_date)  from guest where id = GUEST__ID ;
+END//
+DELIMITER ;
+
+CALL initiate_check_out(' ' ) ;
+DROP PROCEDURE initiate_check_out ;
+-----------------------------------------------------------------------------------
+3.PROCEDURES FOR FINISH CHECKOUT FOR GUEST .
+
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `FINISH_CHECK_OUT`(GUEST_ID VARCHAR(10))
+BEGIN
+SELECT * FROM GUEST WHERE ID=GUEST_ID and guest_status = 'InNotice' ;
+	UPDATE guest SET guest_status = 'VACATED' , check_out_date = now() WHERE id = GUEST_ID ;
+	UPDATE beds SET bed_status = 1 , guest_id = NULL WHERE bed_id =( SELECT bed_id FROM GUEST WHERE ID=GUEST_ID );
+END//
+DELIMITER ;
+CALL FINISH_CHECK_OUT(' ' ) ;
+DROP PROCEDURE FINISH_CHECK_OUT  ;
+----------------------------------------------------------
+4.PROCEDURES FOR ONCLICKDUES.
+
+DROP PROCEDURE IF EXISTS guest_due;
+DELIMITER //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `guest_due`(GUEST__ID VARCHAR(10))
+BEGIN
+DECLARE CHECK_IN__DATE DATE;
+DECLARE CHECK_OUT__DATE DATE;
+DECLARE TOTAL_NO_OF_DAYS INT;
+DECLARE GUEST__STATUS VARCHAR(10);
+SELECT guest_status INTO GUEST__STATUS FROM guest WHERE ID=GUEST__ID;
+IF GUEST__STATUS='Active' THEN
+SELECT check_in_date INTO CHECK_IN__DATE FROM guest WHERE ID=GUEST__ID and guest_status = 'Active';
+IF NOW()>=DATE_ADD(CHECK_IN__DATE,INTERVAL 30 DAY) THEN
+SELECT
+b.default_rent Guest_Due_Amount
+FROM guest JOIN beds b ON guest.bed_id = b.bed_id
+WHERE guest_status='Active' and guest.id=GUEST__ID;
+ELSE
+SELECT 0 Guest_Due_Amount ;
+END IF;
+ELSEIF GUEST__STATUS='InNotice' THEN
+SELECT check_in_date,planned_check_out_date INTO CHECK_IN__DATE,CHECK_OUT__DATE FROM guest WHERE ID=GUEST__ID and guest_status='InNotice';
+SET TOTAL_NO_OF_DAYS =DATEDIFF(CHECK_OUT__DATE ,CHECK_IN__DATE);
+SELECT
+round(TOTAL_NO_OF_DAYS*b.default_rent/30)-IFNULL(sum(payments.amount_paid),0)+IFNULL(sum(payments.refund_amount),0) Guest_Due_Amount
+FROM guest join beds b on guest.bed_id = b.bed_id left join payments on guest.id = payments.guest_id
+where guest_status ='InNotice' and guest.id=GUEST__ID;
+END IF;
+END//
+DELIMITER ;
+
+
+-----------------------------------------------------
+5.PROCEDURES FOR PENDING PAYMENTS ON DASHBOARD .
+
+delimiter //
+CREATE DEFINER=`root`@`localhost` PROCEDURE `pending_payment`()
+BEGIN
+SELECT
+COUNT(CASE
+WHEN (round(datediff(curdate(), check_in_date)*b.default_rent/30)-
+IFNULL((SELECT sum(payments.amount_paid) FROM payments WHERE guest_id= g.id),0)+
+IFNULL((SELECT sum(payments.refund_amount) FROM payments WHERE guest_id= g.id),0))>0 THEN
+1 ELSE NULL
+END ) Guest_Due_Amount
+FROM guest g JOIN beds b ON g.bed_id = b.bed_id
+WHERE guest_status in ('Active','InNotice')  and occupancy_type = 'Regular';
+END//
+delimiter ;
+call pending_payment ;
+drop procedure pending_payment;
+-----------------------------------------------------------------
+6.TOTAL BUILDING SUMMARY .
+
+SELECT * FROM buildingdb.guest ;
+use buildingdb ;
+truncate table payments;
+select * from payments ;
+delimiter //
+create procedure buildingwise_summary ()
+begin
+WITH a AS(SELECT building_name,SUM(p.amount_paid) Total,sum(p.refund_amount) Amount
+FROM payments p RIGHT JOIN buildings b ON
+p.building_id = b.building_id
+WHERE p.transaction_date BETWEEN DATE_SUB(curdate(), INTERVAL 30 DAY ) AND
+curdate() group by p.building_id),
+b AS(SELECT (SELECT building_name FROM buildings
+WHERE building_id = b.building_id) buildingname,count(bed_id) Available_Beds
+FROM beds b WHERE bed_status = 1 GROUP BY building_id)
+SELECT b.buildingname,IFNULL(a.Total,0) Total_Guest_Paid,IFNULL(Amount,0) Total_Refund_to_Guest,Available_Beds
+FROM b LEFT JOIN a ON a.building_name =b.buildingname;
+end //
+delimiter ;
+drop procedure buildingwise_summary ;
+call buildingwise_summary ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

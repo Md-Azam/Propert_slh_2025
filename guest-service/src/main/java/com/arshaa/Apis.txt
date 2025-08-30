@@ -1,0 +1,7 @@
+1.Api for buildingWise Summary ;
+
+http://localhost:8989/payment/getBuildingwiseSummary
+
+2.Api for Getting payment history by buildingId .
+
+http://localhost:8989/payment/getBuildingwisePaymentSummary/{buildingId} .

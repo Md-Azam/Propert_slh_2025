@@ -1,0 +1,10 @@
+server :
+  port : 7000
+  
+  
+managment:
+  endpoints:
+  web:
+    exposure:
+      include:
+        - "*"

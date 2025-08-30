@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: gatewayService
+  cloud:
+    gateway:
+      routes:
+        - id: guestService
+          uri: lb://guestService
+          predicates:
+            - Path=/guest/**
+            
+        - id: guestService
+          uri: lb://guestService
+          predicates:
+            - Path=/rates/**
+            
+        - id: guestService
+          uri: lb://guestService
+          predicates:
+            - Path=/profiles/**
+
+        - id: guestService
+          uri: lb://guestService
+          predicates:
+            - Path=/payment/**
+
+        - id: bedService
+          uri: lb://bedService
+          predicates:
+            - Path=/bed/**
+            
+        - id: bedService
+          uri: lb://bedService
+          predicates:
+            - Path=/building/**
+
+        - id: loginService
+          uri: lb://loginService
+          predicates:
+            - Path=/login/**
+            
+        - id: loginService
+          uri: lb://loginService
+          predicates:
+            - Path=/info/**
+            
+        - id: emailService
+          uri: lb://emailService
+          predicates:
+            - Path=/mail/**    
+
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url: 
+      defaultZone: http://localhost:8761/eureka
+
+
+server:
+  port: 8989
