@@ -597,12 +597,12 @@ public class BedController {
 										newBed.setGuestName(listOfGuests.getFirstName());
 										newBed.setGuestStatus(listOfGuests.getGuestStatus());
 										newBed.setDueAmount(listOfGuests.getDueAmount());
-										GuestProfile getProfile = template.getForObject(
-												"http://guestService/guest/files/" + newBed.getGuestId(),
-												GuestProfile.class);
-										newBed.setName(getProfile.getName());
-										newBed.setType(getProfile.getType());
-										newBed.setUrl(getProfile.getData());
+//										GuestProfile getProfile = template.getForObject(
+//												"http://guestService/guest/getImage/" + newBed.getGuestId(),
+//												GuestProfile.class);
+//										newBed.setName(getProfile.getName());
+//										newBed.setType(getProfile.getType());
+//										newBed.setUrl(getProfile.getData());
 										newBed.setGuestDue(listOfGuests.getDueAmount());
 
 										bedsList.add(newBed);

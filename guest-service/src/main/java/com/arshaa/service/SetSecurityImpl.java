@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -77,10 +78,10 @@ public class SetSecurityImpl implements SetSecurityInterface {
 		ArrayList<String> ustatus = new ArrayList<>();
 		ustatus.add("Active");
 		ustatus.add("InNotice");
-		List<Guest> pagePost = repository.findByBuildingIdAndGuestStatusInAndPlannedCheckOutDateBefore(buildingId,
-				ustatus, plannedCheckOutDate);
+		List<Guest> pagePost = repository.findByBuildingIdAndPlannedCheckOutDateBefore(buildingId, plannedCheckOutDate);
 //		List<Guest> allPosts = pagePost.getContent();
 		List<GuestDto> data = new ArrayList<>();
+		Set<String> excludedStatuses = Set.of("InNotice", "VACATED");
 
 		if (!pagePost.isEmpty()) {
 			pagePost.forEach(s -> {
@@ -88,36 +89,36 @@ public class SetSecurityImpl implements SetSecurityInterface {
 				LocalDate plannedDate = s.getPlannedCheckOutDate().toInstant().atZone(ZoneId.systemDefault())
 						.toLocalDate();
 
-				LocalDate twoDaysBefore = LocalDate.now().minusDays(2);
 				LocalDate alertPlannedCheckOut = plannedDate.minusDays(2);
 				System.out.println("alertPlannedCheckOut: " + alertPlannedCheckOut);
-
-				if (plannedDate.isBefore(twoDaysBefore) && s.getOccupancyType().equalsIgnoreCase("OneMonth")) {
-					GuestDto d = new GuestDto();
-					d.setAadharNumber(s.getAadharNumber());
-					d.setAlertPlannedCheckOutDate(alertPlannedCheckOut);
-					d.setBedId(s.getBedId());
-					d.setEmail(s.getEmail());
-					d.setGuestStatus(s.getGuestStatus());
-					d.setOccupancyType(s.getOccupancyType());
-					d.setBuildingId(s.getBuildingId());
-					d.setGuestName(s.getFirstName());
-					d.setAmountPaid(s.getAmountPaid());
-					d.setBuildingId(s.getBuildingId());
-					d.setPlannedCheckOutDate(s.getPlannedCheckOutDate());
-					String name = template.getForObject(
-							"http://bedService/bed/getBuildingNameByBuildingId/" + s.getBuildingId(), String.class);
-					d.setBuildingName(name);
-					String c = path + s.getId();
-					d.setImageUrl(c);
-					d.setPersonalNumber(s.getPersonalNumber());
-					d.setCheckInDate(s.getCheckInDate());
-					d.setCheckOutDate(s.getCheckOutDate());
-					d.setAddressLine1(s.getAddressLine1());
-					d.setAddressLine2(s.getAddressLine2());
-					d.setId(s.getId());
-					d.setDefaultRent(s.getDefaultRent());
-					data.add(d);
+				if (!excludedStatuses.contains(s.getGuestStatus())) {
+					if (plannedDate.isBefore(LocalDate.now()) && s.getOccupancyType().equalsIgnoreCase("OneMonth")) {
+						GuestDto d = new GuestDto();
+						d.setAadharNumber(s.getAadharNumber());
+						d.setAlertPlannedCheckOutDate(alertPlannedCheckOut);
+						d.setBedId(s.getBedId());
+						d.setEmail(s.getEmail());
+						d.setGuestStatus(s.getGuestStatus());
+						d.setOccupancyType(s.getOccupancyType());
+						d.setBuildingId(s.getBuildingId());
+						d.setGuestName(s.getFirstName());
+						d.setAmountPaid(s.getAmountPaid());
+						d.setBuildingId(s.getBuildingId());
+						d.setPlannedCheckOutDate(s.getPlannedCheckOutDate());
+						String name = template.getForObject(
+								"http://bedService/bed/getBuildingNameByBuildingId/" + s.getBuildingId(), String.class);
+						d.setBuildingName(name);
+						String c = path + s.getId();
+						d.setImageUrl(c);
+						d.setPersonalNumber(s.getPersonalNumber());
+						d.setCheckInDate(s.getCheckInDate());
+						d.setCheckOutDate(s.getCheckOutDate());
+						d.setAddressLine1(s.getAddressLine1());
+						d.setAddressLine2(s.getAddressLine2());
+						d.setId(s.getId());
+						d.setDefaultRent(s.getDefaultRent());
+						data.add(d);
+					}
 				}
 			});
 		}

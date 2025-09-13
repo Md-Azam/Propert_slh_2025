@@ -1,7 +1,9 @@
 package com.arshaa.service;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
@@ -24,6 +27,17 @@ import com.arshaa.exception.ResourceNotFoundException;
 import com.arshaa.model.ApisResponse;
 import com.arshaa.repository.GuestRepository;
 import com.arshaa.repository.PayRepos;
+import com.google.common.net.HttpHeaders;
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import com.payment.common.PaymentApiDetails;
 import com.payment.common.PaymentConfirmation;
 import com.payment.common.PaymentRemainderData;
@@ -125,7 +139,8 @@ public class PaymentImplement implements PaymentService {
 
 			com.arshaa.model.DueResponse dRes = dueCalcServ.updateDueAmount(p.getAmountPaid(), p.getRefundAmount(),
 					p.getGuestId());
-			Guest g = guestRepo.findById(p.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));	
+			Guest g = guestRepo.findById(p.getGuestId())
+					.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 
 			String buildingname = template.getForObject(
 					"http://bedService/bed/getBuildingNameByBuildingId/" + secondpay.getBuildingId(), String.class);
@@ -187,7 +202,8 @@ public class PaymentImplement implements PaymentService {
 			THistory th = new THistory();
 			th.setAmountPaid(h.getAmountPaid());
 			th.setGuestId(h.getGuestId());
-			Guest name = guestRepo.findById(h.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));	
+			Guest name = guestRepo.findById(h.getGuestId())
+					.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 			th.setGuestName(name.getFirstName());
 			String buildingName = template.getForObject(
 					"http://bedService/bed/getBuildingNameByBuildingId/" + h.getBuildingId(), String.class);
@@ -247,7 +263,8 @@ public class PaymentImplement implements PaymentService {
 			THistory th = new THistory();
 			th.setAmountPaid(h.getAmountPaid());
 			th.setGuestId(h.getGuestId());
-			Guest name = guestRepo.findById(h.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));
+			Guest name = guestRepo.findById(h.getGuestId())
+					.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 			th.setGuestName(name.getFirstName());
 			String buildingName = template.getForObject(
 					"http://bedService/bed/getBuildingNameByBuildingId/" + h.getBuildingId(), String.class);
@@ -297,7 +314,8 @@ public class PaymentImplement implements PaymentService {
 					RecentTransactions rt = new RecentTransactions();
 					rt.setAmountPaid(payment.getAmountPaid());
 					rt.setGuestId(payment.getGuestId());
-					Guest name = guestRepo.findById(payment.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));
+					Guest name = guestRepo.findById(payment.getGuestId())
+							.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 					rt.setGuestName(name.getFirstName());
 					rt.setBedId(name.getBedId());
 					String buildingName = template.getForObject(
@@ -322,7 +340,8 @@ public class PaymentImplement implements PaymentService {
 					RecentTransactions rt = new RecentTransactions();
 					rt.setAmountPaid(payment.getAmountPaid());
 					rt.setGuestId(payment.getGuestId());
-					Guest name = guestRepo.findById(payment.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));
+					Guest name = guestRepo.findById(payment.getGuestId())
+							.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 					rt.setGuestName(name.getFirstName());
 					rt.setBedId(name.getBedId());
 					String buildingName = template.getForObject(
@@ -399,7 +418,8 @@ public class PaymentImplement implements PaymentService {
 				rt.setGuestId(payment.getGuestId());
 				rt.setBedId(maps.get(payment.getGuestId()));
 
-				Guest name = guestRepo.findById(payment.getGuestId()).orElseThrow(() -> new  ResourceNotFoundException(false,"Guest Id Not Found"));
+				Guest name = guestRepo.findById(payment.getGuestId())
+						.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
 				rt.setGuestName(name.getFirstName());
 				rt.setId(payment.getId());
 				rt.setPaymentPurpose(payment.getPaymentPurpose());
@@ -434,6 +454,99 @@ public class PaymentImplement implements PaymentService {
 			throw new IllegalAccessError("Building Id is not Present");
 		}
 
+	}
+
+	@Override
+	public ResponseEntity<byte[]> recordPaymenAndSendPDF(PostPayments payment) {
+		String eUri = "http://emailService/mail/sendPaymentConfirmation/";
+		Guest guest = new Guest();
+		Payments secondpay = new Payments();
+		secondpay.setAmountPaid(payment.getAmountPaid());
+		secondpay.setBuildingId(payment.getBuildingId());
+		secondpay.setTransactionId(payment.getTransactionId());
+		secondpay.setPaymentPurpose(payment.getPaymentPurpose());
+		secondpay.setOccupancyType(payment.getOccupancyType());
+		secondpay.setGuestId(payment.getGuestId());
+		java.sql.Date c = new java.sql.Date(payment.getCreatedOn().getTime());
+		payment.setCreatedOn(c);
+
+		secondpay.setTransactionDate(secondpay.getTransactionDate());
+		secondpay.setRefundAmount(payment.getRefundAmount());
+		Payments p = repo.save(secondpay);
+		PaymentConfirmation pc = new PaymentConfirmation();
+
+		com.arshaa.model.DueResponse dRes = dueCalcServ.updateDueAmount(p.getAmountPaid(), p.getRefundAmount(),
+				p.getGuestId());
+		Guest g = guestRepo.findById(p.getGuestId())
+				.orElseThrow(() -> new ResourceNotFoundException(false, "Guest Id Not Found"));
+
+		String buildingname = template.getForObject(
+				"http://bedService/bed/getBuildingNameByBuildingId/" + secondpay.getBuildingId(), String.class);
+		pc.setAmountPaid(payment.getAmountPaid());
+		pc.setEmail(g.getEmail());
+
+		pc.setName(g.getFirstName());
+		pc.setBedId(g.getBedId());
+		pc.setBuildingName(buildingname);
+		pc.setTransactionId(payment.getTransactionId());
+		pc.setPaymentId(p.getId());
+		pc.setAmountPaid(p.getAmountPaid());
+		pc.setRefundAmount(p.getRefundAmount());
+		pc.setDate(secondpay.getTransactionDate());
+		pc.setCheckInDate(g.getCheckInDate());
+		pc.setPurpose(secondpay.getPaymentPurpose());
+		EmailResponse pcEmail = template.postForObject(eUri, pc, EmailResponse.class);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		Document document = new Document(PageSize.A4);
+		PdfWriter.getInstance(document, baos);
+
+		document.open();
+
+		// Title
+		Font titleFont = new Font(Font.HELVETICA, 20, Font.BOLD);
+		Paragraph title = new Paragraph("RECEIPT VOUCHER", titleFont);
+		title.setAlignment(Element.ALIGN_CENTER);
+		document.add(title);
+
+		document.add(Chunk.NEWLINE);
+
+		// Table with receipt data
+		PdfPTable table = new PdfPTable(2);
+		table.setWidthPercentage(100);
+		table.setSpacingBefore(10f);
+
+		addRow(table, "Voucher Reference No.", pc.getTransactionId());
+		addRow(table, "Date", LocalDate.now().toString());
+		addRow(table, "Name", pc.getName());
+		addRow(table, "Amount Paid", pc.getAmountPaid() + " Rs");
+		addRow(table, "Room No", pc.getBedId());
+		addRow(table, "Check-in Date", pc.getCheckInDate().toString());
+		addRow(table, "Purpose", pc.getPurpose());
+
+		document.add(table);
+
+		document.add(Chunk.NEWLINE);
+		document.add(new Paragraph("This is a system generated receipt, no signature required."));
+
+		document.close();
+
+		// 3. Return as downloadable response
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						"attachment; filename=receipt-" + pc.getPaymentId() + ".pdf")
+				.contentType(MediaType.APPLICATION_PDF).body(baos.toByteArray());
+
+	}
+
+	private void addRow(PdfPTable table, String key, String value) {
+		PdfPCell cell1 = new PdfPCell(new Phrase(key));
+		PdfPCell cell2 = new PdfPCell(new Phrase(value));
+
+		cell1.setPadding(5);
+		cell2.setPadding(5);
+
+		table.addCell(cell1);
+		table.addCell(cell2);
 	}
 
 }

@@ -145,7 +145,7 @@ public class RatService implements RatInterfaces {
 						bedInfo.setDueAmount(listOfGuests.getDueAmount());
 					
 						
-						bedInfo.setImageUrl(ProdImageUrl+listOfGuests.getId());
+						bedInfo.setImageUrl(imageUrl+listOfGuests.getId());
 						bedInfo.setGuestDue(listOfGuests.getDueAmount());
 						bedsList.add(bedInfo);
 					} else {
@@ -400,8 +400,7 @@ public class RatService implements RatInterfaces {
 					// Date date1 = sdf.parse(listOfGuests1.getPlannedCheckOutDate());
 					// Date date2 = sdf.parse(new Date());
 
-					if ((listOfGuests1.getOccupancyType().equalsIgnoreCase("Regular"))
-							&& (listOfGuests1.getGuestStatus().equalsIgnoreCase("InNotice"))) {
+					if ((listOfGuests1.getOccupancyType().equalsIgnoreCase("OneMonth"))) {
 						log.info("local date {}",new Date());
 						log.info("planned date {}",listOfGuests1.getPlannedCheckOutDate());
 						if ((isLocalDateBeforeDate(listOfGuests1.getPlannedCheckOutDate(),date))) {
@@ -411,17 +410,6 @@ public class RatService implements RatInterfaces {
 							newBed.setExceeded(true);
 							bedsList.add(newBed);
 						}
-					} else if ((listOfGuests1.getOccupancyType().equalsIgnoreCase("OneMonth"))
-							|| (listOfGuests1.getOccupancyType().equalsIgnoreCase("daily"))) {
-						
-						if ((isLocalDateBeforeDate(listOfGuests1.getPlannedCheckOutDate(),date))) {
-							log.info("local date {}",new Date());
-							log.info("planned date {}",listOfGuests1.getPlannedCheckOutDate());
-							BedsInfo newBed = this.setBeds(bd, types, false);
-							newBed.setExceeded(true);
-							bedsList.add(newBed);
-						}
-
 					}
 
 				});

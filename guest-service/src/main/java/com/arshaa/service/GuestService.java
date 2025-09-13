@@ -1060,7 +1060,8 @@ public class GuestService implements GuestInterface {
 		activeGuestsCount = repository.getCountOfActiveGuestsWithoutDue(buildingId);
 		dueGuests = repository.getCountOfDueGuests(buildingId);
 		inNotice = repository.findByBuildingIdAndGuestStatus(buildingId, "InNotice").get().size();
-		exceededGuests = repository.exceededGuestsNotRegular(buildingId) + repository.exceededGuestsRegular(buildingId);
+//		exceededGuests = repository.exceededGuestsNotRegular(buildingId) + repository.exceededGuestsRegular(buildingId);
+		exceededGuests = repository.exceededGuestsNotRegular(buildingId);	
 		todaysCheckout = repository.checkoutTodayGuestsNotRegular(buildingId)
 				+ repository.checkoutTodayGuestsRegular(buildingId);
 		getList.add(

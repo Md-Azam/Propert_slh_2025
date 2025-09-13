@@ -29,6 +29,9 @@ public interface PaymentService {
 	// 7.POSTING THE DATA OF GUEST AFTER ONBOARDING .
 	public String addPaymentAfterOnBoard(PostPayments payment);
 
+	// 7.POSTING THE DATA OF GUEST AFTER ONBOARDING .
+	public ResponseEntity<byte[]> recordPaymenAndSendPDF(PostPayments payment);
+
 	public PaymentRemainderData getCountOfPaymentAmount(String guestId);
 
 	public ResponseEntity getMonthlySummary(int month, int year, int buildingId);
@@ -46,5 +49,6 @@ public interface PaymentService {
 	PaymentApiDetails getAllPays(Integer pageNumber, Integer pageSize, String sortBy, String sortDir);
 
 	public List<RecentTransactions> getRecent(Integer buildingId);
+
 	Long getSumofMonthlyIncomeByBuildingId(Integer buildingId);
 }

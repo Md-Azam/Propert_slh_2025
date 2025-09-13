@@ -91,8 +91,10 @@ public interface GuestRepository extends JpaRepository<Guest, String> {
 	@Query(value = "SELECT count(*)  FROM  guest where  guest.due_amount >0 and guest.building_id=?1 and guest_status in(\"active\",\"InNotice\")", nativeQuery = true)
 	int getCountOfDueGuests(int buildingId);
 
-	@Query(value = "SELECT count(*) from  guest where occupancy_type in(\"OneMonth\",\"daily\") and guest_status='active' and building_id=?1 "
-			+ " and guest.planned_check_out_date < curdate(); ", nativeQuery = true)
+//	@Query(value = "SELECT count(*) from  guest where occupancy_type in(\"OneMonth\",\"daily\") and guest_status='active' and building_id=?1 "
+//			+ " and guest.planned_check_out_date < curdate(); ", nativeQuery = true)
+//	int exceededGuestsNotRegular(int buildingId);
+	@Query(value = "SELECT count(*) FROM guest WHERE guest_status != 'VACATED' AND occupancy_type='OneMonth' AND planned_check_out_date < CURDATE() AND building_id=?1",nativeQuery = true)
 	int exceededGuestsNotRegular(int buildingId);
 
 	@Query(value = "SELECT count(*) from  guest where occupancy_type = \"Regular\" and guest_status='InNotice' and building_id=?1 "
@@ -114,8 +116,7 @@ public interface GuestRepository extends JpaRepository<Guest, String> {
 
 	List<Guest> findByBuildingIdAndNoticeDateBetween(Integer buildingId, Date fromDate, Date toDate);
 
-	List<Guest> findByBuildingIdAndGuestStatusInAndPlannedCheckOutDateBefore(Integer BuildingId,
-			List<String> guestStatus, @Param(value = "plannedCheckOutDate") Date plannedCheckOutDate);
+	List<Guest> findByBuildingIdAndPlannedCheckOutDateBefore(Integer BuildingId, @Param(value = "plannedCheckOutDate") Date plannedCheckOutDate);
 
 	List<Guest> findByBuildingIdAndGuestStatusInAndPlannedCheckOutDateEquals(Integer BuildingId,
 			List<String> guestStatus, @Param(value = "plannedCheckOutDate") Date plannedCheckOutDate);

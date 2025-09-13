@@ -50,6 +50,11 @@ public class PayCOntroller {
 	private GuestRepository guestRepo;
 	@Autowired
 	private DueCalculateService dueCalcServ;
+	
+	@PostMapping("/getrecordPaymenAndSendPDF")
+	public ResponseEntity<byte[]> generateReceiptForGuest(@RequestBody PostPayments p){
+		return this.serve.recordPaymenAndSendPDF(p);
+	}
 
 	// http://localhost:8989/payment/addPaymentAtOnBoarding
 	// ADDING PAYMENT AT ONBOARDING TIME .
